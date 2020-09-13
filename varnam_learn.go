@@ -3,7 +3,7 @@ package main
 import (
 	"log"
 
-	"github.com/varnamproject/varnamd/libvarnam"
+	"github.com/subins2000/varnamd/libvarnam"
 )
 
 var (

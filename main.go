@@ -166,16 +166,12 @@ func main() {
 
 	startSyncDispatcher()
 	go startDaemon(app, config)
-	startWebview()
-
-}
-
-func startWebview() {
 	debug := true
 	w := webview.New(debug)
 	defer w.Destroy()
 	w.SetTitle("Varnam D")
 	w.SetSize(800, 600, webview.HintNone)
-	w.Navigate("http://localhost:8090/")
+	w.Navigate("http://localhost" + config.Address)
 	w.Run()
+
 }
