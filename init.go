@@ -60,7 +60,7 @@ func getConfigDir() string {
 // access to bunded static assets to the app.
 func initVFS() (stuffbin.FileSystem, error) {
 	files := []string{
-		"ui:/",
+		"dist:/",
 	}
 
 	binPath, err := os.Executable()

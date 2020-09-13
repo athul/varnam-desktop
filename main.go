@@ -170,7 +170,7 @@ func main() {
 	w := webview.New(debug)
 	defer w.Destroy()
 	w.SetTitle("Varnam D")
-	w.SetSize(800, 600, webview.HintNone)
+	w.SetSize(1024, 1024, webview.HintNone)
 	w.Navigate("http://localhost" + config.Address)
 	w.Run()
 
