@@ -1,23 +1,27 @@
 # varnamd
 =============
 
-Varnam daemon which also acts as a HTTP server. This program powers http://varnamproject.com
+Varnam daemon which also acts as a HTTP server.
 
 ### Installation
 
-You do not have to git clone the repo. Use the following command to clone and install varnamd:
+Clone the repo.
 
-`go get github.com/varnamproject/varnamd`
+Build `libvarnam` :
 
-You need to have set the [$GOPATH](https://github.com/golang/go/wiki/GOPATH) environment variable for this to work. Do not worry about the directory structure since it will be created for you by the previous `go get`.
+```
+git submodule update --init
+cd libvarnam/libvarnam && cmake . && make varnamstatic && ln -s $(realpath libvarnamstatic.a) libvarnam.a
+```
 
-`cd $GOPATH/src/github.com/varnamproject/varnamd`
+Build `varnamd` :
 
-`go install`
+```
+go build .
+./varnamd
+```
 
-The binaries should now be present in `$GOPATH/bin/`
-
-`./$GOPATH/bin/varnamd` to run the server
+To ship `varnamd`, it needs the `ui` folder to be either in the same working dir or as a flag `-ui`
 
 ### Usage
 
@@ -68,7 +72,5 @@ and the response for https://api.varnamproject.com/tl/ml/Malayalam will be:
   "input": "Malayalam"
 }
 ```
-
-
 
 ##### see server.go for supported APIs.

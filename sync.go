@@ -13,7 +13,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/varnamproject/varnamd/libvarnam"
+	"github.com/subins2000/varnamd/libvarnam"
 )
 
 type syncDispatcher struct {
