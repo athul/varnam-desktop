@@ -8,6 +8,7 @@ import (
 	"time"
 
 	flag "github.com/spf13/pflag"
+	"github.com/webview/webview"
 
 	"github.com/knadh/koanf"
 	"github.com/knadh/koanf/parsers/toml"
@@ -31,6 +32,7 @@ type appConfig struct {
 	DownloadEnabledSchemes string        `koanf:"download-enabled-schemes"`
 	SyncInterval           time.Duration `koanf:"sync-interval"`
 	UpstreamURL            string        `koanf:"upstream-url"`
+	// Web                    bool          `koanf:"web"`
 }
 
 var (
@@ -163,5 +165,17 @@ func main() {
 	}
 
 	startSyncDispatcher()
-	startDaemon(app, config)
+	go startDaemon(app, config)
+	startWebview()
+
+}
+
+func startWebview() {
+	debug := true
+	w := webview.New(debug)
+	defer w.Destroy()
+	w.SetTitle("Varnam D")
+	w.SetSize(800, 600, webview.HintNone)
+	w.Navigate("http://localhost:8090/")
+	w.Run()
 }

@@ -13,6 +13,7 @@ require (
 	github.com/mattn/go-sqlite3 v1.14.0
 	github.com/spf13/pflag v1.0.5
 	github.com/valyala/fasttemplate v1.2.0 // indirect
+	github.com/webview/webview v0.0.0-20200724072439-e0c01595b361
 	golang.org/x/crypto v0.0.0-20200709230013-948cd5f35899 // indirect
 	golang.org/x/net v0.0.0-20200707034311-ab3426394381 // indirect
 	golang.org/x/sys v0.0.0-20200625212154-ddb9806d33ae // indirect
