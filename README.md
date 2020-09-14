@@ -10,8 +10,8 @@ Clone the repo.
 Build `libvarnam` :
 
 ```
-git submodule update --init
-cd libvarnam/libvarnam && cmake . && make varnamstatic && ln -s $(realpath libvarnamstatic.a) libvarnam.a
+git submodule update --init --recursive
+cd libvarnam/libvarnam && cmake . && make varnamstatic && ln -s $(realpath libvarnamstatic.a) libvarnam.a && cd -
 ```
 
 Build `varnamd` :
