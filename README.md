@@ -1,7 +1,7 @@
-# varnamd
+# Varnam Desktop App
 =============
 
-Varnam daemon which also acts as a HTTP server.
+Cross-platform desktop app for Varnam. Uses [varnam-editor](https://github.com/thetronjohnson/varnam-editor) as GUI frontend.
 
 ### Installation
 
