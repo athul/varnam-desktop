@@ -1,7 +1,8 @@
 package libvarnam
 
-// #cgo LDFLAGS: -Llibvarnam -lvarnam
-// #cgo CFLAGS: -Ilibvarnam -DHAVE_SNPRINTF -DPREFER_PORTABLE_SNPRINTF -DNEED_ASPRINTF
+// #cgo LDFLAGS: -L${SRCDIR}/libvarnam -lvarnam
+// #cgo linux LDFLAGS: -ldl
+// #cgo CFLAGS: -I${SRCDIR}/libvarnam -DHAVE_SNPRINTF -DPREFER_PORTABLE_SNPRINTF -DNEED_ASPRINTF
 // #include <varnam.h>
 import "C"
 import "fmt"
