@@ -59,6 +59,13 @@ type args struct {
 	Text     string `json:"text"`
 }
 
+//TrainArgs are the args for the Train Endpoint
+type TrainArgs struct {
+	Lang    string `json:"lang"`
+	Pattern string `json:"pattern"`
+	Word    string `json:"word"`
+}
+
 func handleStatus(c echo.Context) error {
 	uptime := time.Since(startedAt)
 
@@ -243,7 +250,7 @@ func handleLanguages(c echo.Context) error {
 	return c.JSON(http.StatusOK, schemeDetails)
 }
 
-func handlLearn(c echo.Context) error {
+func handleLearn(c echo.Context) error {
 	var (
 		a args
 
@@ -319,4 +326,22 @@ func handleIndex(c echo.Context) error {
 	c.Response().Header().Set("Content-Type", "text/html")
 
 	return c.String(http.StatusOK, string(b))
+}
+func handleTrain(c echo.Context) error {
+	var targs TrainArgs
+
+	c.Request().Header.Set("Content-Type", "application/json")
+
+	if err := c.Bind(&targs); err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("error getting metadata. message: %s", err.Error()))
+	}
+	handle, err := libvarnam.Init(targs.Lang)
+	if err != nil {
+		return fmt.Errorf("failed to get data")
+	}
+	if err := handle.Train(targs.Pattern, targs.Word); err != nil {
+		return fmt.Errorf("failed to Train %s. %s", targs.Word, err.Error())
+	}
+	return c.JSON(200, "Word Trained")
+
 }
