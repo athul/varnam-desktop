@@ -8,6 +8,9 @@ STATIC := dist:/
 deps:
 	go get -u github.com/knadh/stuffbin/...
 
+editor:
+	./build-editor.sh
+
 .PHONY: build
 build: ## Build the binary (default)
 	go build -o ${BIN} -ldflags="-X 'main.buildVersion=${VERSION}' -X 'main.buildDate=${BUILD_DATE}' -s -w"

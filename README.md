@@ -18,6 +18,7 @@ Build `varnam` :
 
 ```
 make deps
+make editor
 make build
 ```
 
