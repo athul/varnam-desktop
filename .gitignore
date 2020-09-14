@@ -23,5 +23,6 @@ _testmain.go
 *.test
 *.prof
 varnamd
+varnam
 !init.d/varnamd
 ui
