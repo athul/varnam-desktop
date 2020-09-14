@@ -22,7 +22,13 @@ make editor
 make build
 ```
 
-To ship `varnamd`, it needs the `ui` folder to be either in the same working dir or as a flag `-ui`
+Run :
+
+```
+./varnam
+```
+
+Thanks to [stuffbin](https://github.com/knadh/stuffbin), HTML+CSS+JS files are all merged into one big binary (`varnam`).
 
 ### Usage
 
