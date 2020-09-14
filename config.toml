@@ -1,5 +1,5 @@
 [app]
-    address                     = ":8080"
+    address                     = ":8089"
     enable-internal-api         = false
     enable-ssl                  = false
     cert-path                   = ""
