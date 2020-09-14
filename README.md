@@ -1,7 +1,7 @@
-# varnamd
+# Varnam Desktop App
 =============
 
-Varnam daemon which also acts as a HTTP server.
+Cross-platform desktop app for Varnam. Uses [varnam-editor](https://github.com/thetronjohnson/varnam-editor) as GUI frontend.
 
 ### Installation
 
@@ -10,15 +10,16 @@ Clone the repo.
 Build `libvarnam` :
 
 ```
-git submodule update --init
-cd libvarnam/libvarnam && cmake . && make varnamstatic && ln -s $(realpath libvarnamstatic.a) libvarnam.a
+git submodule update --init --recursive
+cd libvarnam/libvarnam && cmake . && make varnamstatic && ln -s $(realpath libvarnamstatic.a) libvarnam.a && cd -
 ```
 
-Build `varnamd` :
+Build `varnam` :
 
 ```
-go build .
-./varnamd
+make deps
+make editor
+make build
 ```
 
 To ship `varnamd`, it needs the `ui` folder to be either in the same working dir or as a flag `-ui`

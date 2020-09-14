@@ -1,7 +1,8 @@
 package libvarnam
 
-// #cgo LDFLAGS: -Llibvarnam -lvarnam
-// #cgo CFLAGS: -Ilibvarnam -DHAVE_SNPRINTF -DPREFER_PORTABLE_SNPRINTF -DNEED_ASPRINTF
+// #cgo LDFLAGS: -L${SRCDIR}/libvarnam -lvarnam
+// #cgo linux LDFLAGS: -ldl
+// #cgo CFLAGS: -I${SRCDIR}/libvarnam -DHAVE_SNPRINTF -DPREFER_PORTABLE_SNPRINTF -DNEED_ASPRINTF
 // #include <varnam.h>
 import "C"
 import "fmt"
@@ -188,7 +189,7 @@ func (v *Varnam) Destroy() {
 	C.varnam_destroy(v.handle)
 }
 
-// Train methods trains with the word and pattern,eg: pattern=chrome,word=ക്രോം
+// Train methods adds a word with pattern, eg: pattern=firefox, word=ഫയർഫോക്സ്
 func (v *Varnam) Train(pattern, word string) error {
 	rc := C.varnam_train(v.handle, C.CString(pattern), C.CString(word))
 
