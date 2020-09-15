@@ -35,4 +35,4 @@ Thanks to [stuffbin](https://github.com/knadh/stuffbin), HTML+CSS+JS files are a
 
 ## Usage
 
-`varnam` bundles with `varnamd`, the HTTP server to interface with varnam library. By default, the server runs on `127.0.0.1:8089`. See [varnamd](https://github.com/varnamproject/varnamd) for more details.
+`varnam` bundles with `varnamd`, the HTTP server to interface with varnam library. By default, the server runs on `127.0.0.1:8123`. See [varnamd](https://github.com/varnamproject/varnamd) for more details.

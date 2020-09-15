@@ -129,7 +129,7 @@ func main() {
 
 	// If address is empty run on localhost port 8080.
 	if config.Address == "" {
-		config.Address = ":8080"
+		config.Address = ":8123"
 	}
 
 	if config.EnableSSL && (config.CertFilePath == "" || config.KeyFilePath == "") {
