@@ -47,6 +47,7 @@ func initHandlers(app *App, enableInternalApis bool) (*echo.Echo, error) {
 	if enableInternalApis {
 		e.POST("/sync/download/{langCode}/enable", handleEnableDownload)
 		e.POST("/sync/download/{langCode}/disable", handleDisableDownload)
+		e.POST("/download-language", handleDownloadLanguage)
 	}
 
 	e.Use(middleware.Recover())
