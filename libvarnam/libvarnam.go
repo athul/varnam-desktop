@@ -43,9 +43,19 @@ func (e *VarnamError) Error() string {
 	return e.message
 }
 
+// GetSchemeFileDirectory returns the folder where scheme file (.vst) are stored
+func GetSchemeFileDirectory() string {
+	return C.GoString(C.varnam_find_symbols_file_directory())
+}
+
 // GetSuggestionsFilePath returns suggestions.
 func (v *Varnam) GetSuggestionsFilePath() string {
 	return C.GoString(C.varnam_get_suggestions_file(v.handle))
+}
+
+// GetSchemeFilePath returns the scheme file (.vst)
+func (v *Varnam) GetSchemeFilePath() string {
+	return C.GoString(C.varnam_get_scheme_file(v.handle))
 }
 
 // GetCorpusDetails will return corpus details.

@@ -7,7 +7,9 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"net/http"
+	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -64,6 +66,11 @@ type TrainArgs struct {
 	Lang    string `json:"lang"`
 	Pattern string `json:"pattern"`
 	Word    string `json:"word"`
+}
+
+//DownloadLangArgs are the args for the language download endpoint
+type DownloadLangArgs struct {
+	Lang string `json:"lang"`
 }
 
 func handleStatus(c echo.Context) error {
@@ -344,4 +351,43 @@ func handleTrain(c echo.Context) error {
 	}
 	return c.JSON(200, "Word Trained")
 
+}
+
+func handleDownloadLanguage(c echo.Context) error {
+	var (
+		args DownloadLangArgs
+
+		app = c.Get("app").(*App)
+	)
+
+	if err := c.Bind(&args); err != nil {
+		app.log.Printf("error in binding request details for learn, err: %s", err.Error())
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("error getting metadata. message: %s", err.Error()))
+	}
+
+	fileURL := fmt.Sprintf("%s/languages/%s/download", varnamdConfig.upstream, args.Lang)
+	filePath := libvarnam.GetSchemeFileDirectory() + "/" + args.Lang + ".vst"
+
+	app.log.Printf("%s : %s", fileURL, filePath)
+
+	resp, err := http.Get(fileURL)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
+	}
+	defer resp.Body.Close()
+
+	out, err := os.Create(filePath)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
+	}
+	defer out.Close()
+
+	// Write the body to file
+	_, err = io.Copy(out, resp.Body)
+
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
+	}
+
+	return c.String(http.StatusOK, "success")
 }
