@@ -391,3 +391,7 @@ func handleDownloadLanguage(c echo.Context) error {
 
 	return c.String(http.StatusOK, "success")
 }
+
+func handleGetUpstreamURL(c echo.Context) error {
+	return c.String(http.StatusOK, varnamdConfig.upstream)
+}
