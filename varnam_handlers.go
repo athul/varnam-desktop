@@ -60,7 +60,6 @@ func initLanguageChannels() {
 
 func getOrCreateHandler(schemeIdentifier string, f func(handle *libvarnam.Varnam) (data interface{}, err error)) (data interface{}, err error) {
 	ch, ok := languageChannels[schemeIdentifier]
-
 	if !ok {
 		return nil, errors.New("invalid scheme identifier")
 	}
@@ -96,6 +95,12 @@ func transliterate(schemeIdentifier string, word string) (interface{}, error) {
 		return handle.Transliterate(word)
 	})
 }
+
+// func trainwords(schemeIdentifier, word, pattern string) (interface{}, error) {
+// 	return getOrCreateHandler(schemeIdentifier, func(handle *libvarnam.Varnam) (data interface{}, err error) {
+// 		return handle.Train(pattern,word)
+// 	})
+// }
 
 func getWords(schemeIdentifier string, downloadStart int) ([]*word, error) {
 	filepath, _ := getOrCreateHandler(schemeIdentifier, func(handle *libvarnam.Varnam) (data interface{}, err error) {
@@ -170,4 +175,16 @@ func sendHandlerToChannel(schemeIdentifier string, handle *libvarnam.Varnam, ch 
 		mutex.Unlock()
 	default:
 	}
+}
+
+func getSchemeFilePath(schemeIdentifier string) (interface{}, error) {
+	return getOrCreateHandler(schemeIdentifier, func(handle *libvarnam.Varnam) (data interface{}, err error) {
+		return handle.GetSchemeFilePath(), nil
+	})
+}
+
+func deleteWord(schemeIdentifier string, word string) (interface{}, error) {
+	return getOrCreateHandler(schemeIdentifier, func(handle *libvarnam.Varnam) (data interface{}, err error) {
+		return nil, handle.DeleteWord(word)
+	})
 }

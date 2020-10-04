@@ -18,6 +18,8 @@ const (
 type Cache interface {
 	Set(lang, word string, val ...string) error
 	Get(lang, word string) ([]string, error)
+	Delete(lang, word string) (bool, error)
+	Clear()
 }
 
 // MemCache impliments Cache interface.
@@ -55,4 +57,17 @@ func (c *MemCache) Get(lang, word string) ([]string, error) {
 	}
 
 	return strings.Split(string(val), wordSeparator), nil
+}
+
+// Delete lang-word from cache.
+func (c *MemCache) Delete(lang, word string) (bool, error) {
+	var key = fmt.Sprintf("%s-%s", lang, word)
+	affected := c.fc.Del([]byte(key))
+
+	return affected, nil
+}
+
+// Clear everything in the cache.
+func (c *MemCache) Clear() {
+	c.fc.Clear()
 }

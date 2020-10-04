@@ -8,8 +8,10 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"net/http"
 	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
@@ -61,11 +63,22 @@ type args struct {
 	Text     string `json:"text"`
 }
 
-//TrainArgs are the args for the Train Endpoint
-type TrainArgs struct {
-	Lang    string `json:"lang"`
+//TrainArgs read the incoming data
+type trainArgs struct {
 	Pattern string `json:"pattern"`
 	Word    string `json:"word"`
+}
+
+//TrainBulkArgs read the incoming data for bulk training.
+type trainBulkArgs struct {
+	Pattern []string `json:"pattern"`
+	Word    string   `json:"word"`
+}
+
+// PackDownloadRequestArgs is the args to download pack from upstream
+type PackDownloadRequestArgs struct {
+	LangCode              string `json:"lang"`
+	PackVersionIdentifier string `json:"pack"`
 }
 
 //DownloadLangArgs are the args for the language download endpoint
@@ -257,14 +270,25 @@ func handleLanguages(c echo.Context) error {
 	return c.JSON(http.StatusOK, schemeDetails)
 }
 
+func handleLanguageDownload(c echo.Context) error {
+	var (
+		langCode = c.Param("langCode")
+	)
+
+	filepath, err := getSchemeFilePath(langCode)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("error: %s", err.Error()))
+	}
+
+	return c.Attachment(filepath.(string), langCode+".vst")
+}
+
 func handleLearn(c echo.Context) error {
 	var (
 		a args
 
 		app = c.Get("app").(*App)
 	)
-
-	c.Request().Header.Set("Content-Type", "application/json")
 
 	if err := c.Bind(&a); err != nil {
 		app.log.Printf("error in binding request details for learn, err: %s", err.Error())
@@ -278,6 +302,161 @@ func handleLearn(c echo.Context) error {
 	}
 
 	go func(word string) { ch <- word }(a.Text)
+
+	return c.JSON(http.StatusOK, "success")
+}
+
+func handleLearnFileUpload(c echo.Context) error {
+	var (
+		app      = c.Get("app").(*App)
+		langCode = c.Param("langCode")
+	)
+
+	// Multipart form
+	form, err := c.MultipartForm()
+	if err != nil {
+		app.log.Printf("failed to read form from request, language: %s, error: %s", langCode, err.Error())
+		return echo.NewHTTPError(http.StatusBadRequest, "request data not found")
+	}
+
+	files, ok := form.File["files"]
+	if !ok {
+		app.log.Printf("files not found, language: %s", langCode)
+		return echo.NewHTTPError(http.StatusBadRequest, "no files were uploaded")
+	}
+
+	if _, ok := learnChannels[langCode]; !ok {
+		app.log.Printf("learn file upload error: unknown language requested to learn: %s", langCode)
+		return echo.NewHTTPError(http.StatusBadRequest, "unable to find language to train")
+	}
+
+	// Copy files first
+	for _, file := range files {
+		// Source
+		src, err := file.Open()
+		if err != nil {
+			app.log.Printf("learn file upload error, err: %s", err.Error())
+			return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
+		}
+
+		// Destination
+		tempDir, err := ioutil.TempDir(os.TempDir(), "varnamd")
+		if err != nil {
+			app.log.Printf("learn file upload error, err: %s", err.Error())
+			return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
+		}
+
+		dst, err := os.Create(filepath.Join(tempDir, file.Filename))
+		if err != nil {
+			app.log.Printf("learn file upload error, err: %s", err.Error())
+			return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
+		}
+
+		// Copy
+		if _, err = io.Copy(dst, src); err != nil {
+			app.log.Printf("learn file upload error, err: %s", err.Error())
+			return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
+		}
+
+		// Explicitely closing resources.
+		_ = dst.Close()
+		_ = src.Close()
+
+		learnWordsFromFile(c, langCode, dst.Name())
+	}
+
+	return c.JSON(http.StatusOK, "success")
+}
+
+func handleTrain(c echo.Context) error {
+	var (
+		targs    trainArgs
+		app      = c.Get("app").(*App)
+		langCode = c.Param("langCode")
+	)
+
+	c.Request().Header.Set("Content-Type", "application/json")
+
+	if err := c.Bind(&targs); err != nil {
+		app.log.Printf("error reading request, err: %s", err.Error())
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("error getting metadata. message: %s", err.Error()))
+	}
+
+	ch, ok := trainChannel[langCode]
+	if !ok {
+		app.log.Printf("unknown language requested to learn: %s", langCode)
+		return echo.NewHTTPError(http.StatusBadRequest, "unable to find language to train")
+	}
+
+	go func(args trainArgs) { ch <- args }(targs)
+
+	_, _ = app.cache.Delete(langCode, targs.Pattern)
+
+	return c.JSON(200, "Word Trained")
+}
+
+// handleTrainBulk is an endpoint for training words in the following format.
+// {[
+// 	{word, patterns: []},
+// 	{word, patterns: []},
+// 	{word, patterns: []},
+// 	{word, patterns: []}
+// ]}
+// It will covert each bulk arg to trainArg and will send to train channel.
+// Training is happened at listenForWords method.
+func handleTrainBulk(c echo.Context) error {
+	var (
+		bulkArgs []trainBulkArgs
+		app      = c.Get("app").(*App)
+		langCode = c.Param("langCode")
+	)
+
+	if err := c.Bind(&bulkArgs); err != nil {
+		app.log.Printf("error reading request, err: %s", err.Error())
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("error getting metadata. message: %s", err.Error()))
+	}
+
+	ch, ok := trainChannel[langCode]
+	if !ok {
+		app.log.Printf("unknown language requested to learn: %s", langCode)
+		return echo.NewHTTPError(http.StatusBadRequest, "unable to find language to train")
+	}
+
+	for _, v := range bulkArgs {
+		for _, p := range v.Pattern {
+			go func(args trainArgs) {
+				ch <- args
+			}(trainArgs{
+				Pattern: p,
+				Word:    v.Word,
+			})
+		}
+	}
+
+	return c.JSON(200, "Words Trained")
+}
+
+// Delete a word
+func handleDelete(c echo.Context) error {
+	var (
+		a args
+
+		app = c.Get("app").(*App)
+	)
+
+	c.Request().Header.Set("Content-Type", "application/json")
+
+	if err := c.Bind(&a); err != nil {
+		app.log.Printf("error in binding request details for delete, err: %s", err.Error())
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("error getting metadata. message: %s", err.Error()))
+	}
+
+	if _, err := deleteWord(a.LangCode, a.Text); err != nil {
+		app.log.Printf("error deleting word, err: %s", err.Error())
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("error: %s", err.Error()))
+	}
+
+	app.cache.Clear()
 
 	return c.JSON(http.StatusOK, "success")
 }
@@ -394,4 +573,82 @@ func handleDownloadLanguage(c echo.Context) error {
 
 func handleGetUpstreamURL(c echo.Context) error {
 	return c.String(http.StatusOK, varnamdConfig.upstream)
+}
+
+func handlePacks(c echo.Context) error {
+	var (
+		langCode = c.Param("langCode")
+	)
+
+	if langCode != "" {
+		pack, err := getPackInfo(langCode)
+		if err != nil {
+			return echo.NewHTTPError(http.StatusBadRequest, err.Error())
+		}
+		return c.JSON(http.StatusOK, pack)
+	}
+
+	packs, err := getPacksInfo()
+	if err != nil {
+		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
+	}
+
+	return c.JSON(http.StatusOK, packs)
+}
+
+func handlePackVersionInfo(c echo.Context) error {
+	var (
+		langCode              = c.Param("langCode")
+		packVersionIdentifier = c.Param("packVersionIdentifier")
+	)
+
+	pack, err := getPackVersionInfo(langCode, packVersionIdentifier)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
+	}
+
+	return c.JSON(http.StatusOK, pack)
+}
+
+func handlePacksDownload(c echo.Context) error {
+	var (
+		packVersionIdentifier = c.Param("packVersionIdentifier")
+		langCode              = c.Param("langCode")
+	)
+
+	if _, err := getPackInfo(langCode); err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
+	}
+
+	packFilePath, err := getPackFilePath(langCode, packVersionIdentifier)
+
+	if err != nil {
+		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
+	}
+
+	return c.Attachment(packFilePath, packVersionIdentifier)
+}
+
+// varnamd Admin can download packs from upstream
+// This is an internal function
+func handlePackDownloadRequest(c echo.Context) error {
+	var (
+		args PackDownloadRequestArgs
+		app  = c.Get("app").(*App)
+		err  error
+	)
+
+	if err := c.Bind(&args); err != nil {
+		app.log.Printf("error reading request, err: %s", err.Error())
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("error getting metadata. message: %s", err.Error()))
+	}
+
+	packFilePath, err := downloadPackFile(args.LangCode, args.PackVersionIdentifier)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("error downloading pack: %s", err.Error()))
+	}
+
+	learnWordsFromFile(c, args.LangCode, packFilePath)
+
+	return c.JSON(http.StatusOK, "success")
 }

@@ -17,12 +17,29 @@ import (
 	"github.com/knadh/stuffbin"
 )
 
+type userConfig map[string]string
+
 const (
 	downloadPageSize = 100
 )
 
+var (
+	kf = koanf.New(".")
+
+	varnamdConfig         *config // config instance used across the application
+	syncDispatcherRunning bool
+	startedAt             time.Time
+	buildVersion          string
+	buildDate             string
+	maxHandleCount        int
+	authEnabled           bool
+
+	// User accounts are stored here.
+	users map[string]userConfig
+)
+
 type appConfig struct {
-	Address string `koanf:"address"`
+	Address string
 
 	EnableInternalApis bool   `koanf:"enable-internal-api"` // internal APIs are not exposed to public
 	EnableSSL          bool   `koanf:"enable-ssl"`
@@ -34,17 +51,6 @@ type appConfig struct {
 	UpstreamURL            string        `koanf:"upstream-url"`
 	// Web                    bool          `koanf:"web"`
 }
-
-var (
-	kf = koanf.New(".")
-
-	varnamdConfig         *config // config instance used across the application
-	syncDispatcherRunning bool
-	startedAt             time.Time
-	buildVersion          string
-	buildDate             string
-	maxHandleCount        int
-)
 
 // App is a singleton to share across handlers.
 type App struct {
@@ -62,6 +68,9 @@ type config struct {
 }
 
 func init() {
+	// Set max processors to number of CPUs to maximize performance.
+	runtime.GOMAXPROCS(runtime.NumCPU())
+
 	//  Setup flags to read from user to start the application.
 	// Initialize 'config' flagset.
 	flagSet := flag.NewFlagSet("config", flag.ContinueOnError)
@@ -71,6 +80,9 @@ func init() {
 
 	// Create  config flag to read 'config.toml' from user.
 	flagSet.String("config", "config.toml", "Path to the TOML configuration file")
+
+	flagSet.Int("p", 8080, "Run daemon in specified port")
+	flagSet.String("host", "", "Host for the varnam daemon server")
 
 	// Create flag for version check.
 	flagSet.Bool("version", false, "Current version of the build")
@@ -97,7 +109,6 @@ func init() {
 	if err = kf.Load(file.Provider(kf.String("config")), toml.Parser()); err != nil {
 		log.Printf("error reading config: %v", err)
 	}
-
 }
 
 func syncRequired() bool {
@@ -116,37 +127,21 @@ func startSyncDispatcher() {
 }
 
 func main() {
-	var (
-		config appConfig
-	)
-
-	runtime.GOMAXPROCS(runtime.NumCPU())
-
-	// Read configuration using Koanf.
-	if err := kf.Unmarshal("app", &config); err != nil {
+	config, err := initAppConfig()
+	if err != nil {
 		log.Fatal(err.Error())
-	}
-
-	// If address is empty run on localhost port 8080.
-	if config.Address == "" {
-		config.Address = ":8123"
-	}
-
-	if config.EnableSSL && (config.CertFilePath == "" || config.KeyFilePath == "") {
-		config.EnableSSL = false
-	}
-
-	if config.SyncInterval < 1*time.Second {
-		config.SyncInterval = 30 * time.Second
-	}
-
-	if config.UpstreamURL == "" {
-		config.UpstreamURL = "https://api.varnamproject.com"
 	}
 
 	maxHandleCount = kf.Int("app.max-handles")
 	if maxHandleCount <= 0 {
 		maxHandleCount = 10
+	}
+
+	authEnabled = kf.Bool("app.accounts-enabled")
+	if authEnabled {
+		if err = kf.Unmarshal("users", &users); err != nil {
+			log.Fatal(err.Error())
+		}
 	}
 
 	varnamdConfig = initConfig(config)
@@ -158,6 +153,7 @@ func main() {
 	if err != nil {
 		log.Fatal(err.Error())
 	}
+
 	app := &App{
 		cache: NewMemCache(),
 		log:   log.New(os.Stdout, "", log.Ldate|log.Ltime|log.Lshortfile),

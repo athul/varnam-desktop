@@ -9,3 +9,7 @@
     #upstream-url               = "http://127.0.0.1:8124"
     download-enabled-schemes    = ""
     sync-interval               = "30s"
+    accounts-enabled            = false
+[users]
+    [users.admin]
+        password = "pass"
