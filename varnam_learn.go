@@ -7,8 +7,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/athul/varnam-desktop/libvarnam"
 	"github.com/labstack/echo/v4"
-	"github.com/subins2000/varnamd/libvarnam"
 )
 
 const defaultChanSize = 1000

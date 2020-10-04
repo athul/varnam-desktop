@@ -18,7 +18,7 @@ import (
 
 	"github.com/golang/groupcache"
 	"github.com/labstack/echo/v4"
-	"github.com/subins2000/varnamd/libvarnam"
+	"github.com/athul/varnam-desktop/libvarnam"
 )
 
 var errCacheSkipped = errors.New("cache skipped")

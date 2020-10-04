@@ -1,4 +1,4 @@
-module github.com/subins2000/varnamd
+module github.com/athul/varnam-desktop
 
 go 1.14
 
