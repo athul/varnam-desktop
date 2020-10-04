@@ -16,9 +16,9 @@ import (
 	"strings"
 	"time"
 
+	"github.com/athul/varnam-desktop/libvarnam"
 	"github.com/golang/groupcache"
 	"github.com/labstack/echo/v4"
-	"github.com/athul/varnam-desktop/libvarnam"
 )
 
 var errCacheSkipped = errors.New("cache skipped")
@@ -512,24 +512,6 @@ func handleIndex(c echo.Context) error {
 	c.Response().Header().Set("Content-Type", "text/html")
 
 	return c.String(http.StatusOK, string(b))
-}
-func handleTrain(c echo.Context) error {
-	var targs TrainArgs
-
-	c.Request().Header.Set("Content-Type", "application/json")
-
-	if err := c.Bind(&targs); err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("error getting metadata. message: %s", err.Error()))
-	}
-	handle, err := libvarnam.Init(targs.Lang)
-	if err != nil {
-		return fmt.Errorf("failed to get data")
-	}
-	if err := handle.Train(targs.Pattern, targs.Word); err != nil {
-		return fmt.Errorf("failed to Train %s. %s", targs.Word, err.Error())
-	}
-	return c.JSON(200, "Word Trained")
-
 }
 
 func handleDownloadLanguage(c echo.Context) error {
