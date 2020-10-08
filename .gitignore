@@ -26,3 +26,5 @@ varnamd
 varnam
 !init.d/varnamd
 ui
+
+config.toml
