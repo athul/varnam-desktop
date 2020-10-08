@@ -1,6 +1,7 @@
 [submodule "libvarnam/libvarnam"]
 	path = libvarnam/libvarnam
 	url = https://github.com/subins2000/libvarnam
+        branch = merge-all-mychanges
 [submodule "varnam-editor"]
 	path = varnam-editor
 	url = https://github.com/thetronjohnson/varnam-editor.git
