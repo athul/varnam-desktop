@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"os/exec"
 	"runtime"
 	"time"
 
@@ -162,12 +163,35 @@ func main() {
 
 	startSyncDispatcher()
 	go startDaemon(app, config)
+
+	// Webview window
 	debug := true
 	w := webview.New(debug)
 	defer w.Destroy()
-	w.SetTitle("Varnam Desktop")
-	w.SetSize(1024, 1024, webview.HintNone)
-	w.Navigate("http://localhost" + config.Address)
-	w.Run()
 
+	// Open links in browser
+	w.Bind("$OPEN_EXTERNAL", func(url string) {
+		var err error
+
+		switch runtime.GOOS {
+		case "linux":
+			err = exec.Command("xdg-open", url).Start()
+		case "windows":
+			err = exec.Command("rundll32", "url.dll,FileProtocolHandler", url).Start()
+		case "darwin":
+			err = exec.Command("open", url).Start()
+		default:
+			err = fmt.Errorf("unsupported platform")
+		}
+
+		if err != nil {
+			log.Fatal(err)
+		}
+	})
+
+	w.SetTitle("Varnam Desktop")
+	w.SetSize(1300, 700, webview.HintNone)
+	// w.Navigate("http://localhost:8080")
+	w.Navigate("http://" + config.Address)
+	w.Run()
 }
