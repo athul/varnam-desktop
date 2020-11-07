@@ -71,6 +71,7 @@ release-windows:
 	copy "config.toml" ${RELEASE_NAME}
 	copy "webview.dll" ${RELEASE_NAME}
 	copy "WebView2Loader.dll" ${RELEASE_NAME}
+	tar -acvf ${RELEASE_NAME}.zip ${RELEASE_NAME}
 
 ifeq ($(OS),Windows_NT)
 release-os:
