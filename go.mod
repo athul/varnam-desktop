@@ -4,6 +4,8 @@ go 1.14
 
 require (
 	github.com/coocood/freecache v1.1.1
+	github.com/cratonica/2goarray v0.0.0-20190331194516-514510793eaa // indirect
+	github.com/getlantern/systray v1.0.5
 	github.com/golang/groupcache v0.0.0-20200121045136-8c9f03a8e57e
 	github.com/golang/protobuf v1.4.2 // indirect
 	github.com/knadh/koanf v0.12.1
