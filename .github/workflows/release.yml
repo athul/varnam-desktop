@@ -1,0 +1,56 @@
+name: Publish
+
+on:
+  push:
+    tags:
+      - '*'
+
+jobs:
+  publish:
+    name: Publish for ${{ matrix.os }} ${{ matrix.arch }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            file: "*.tar.gz"
+          - os: windows-latest
+            file: "*.zip"
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          submodules: recursive
+      - uses: actions/setup-go@v2
+      - name: setup env
+        # https://github.com/actions/setup-go/issues/14
+        run: |
+          echo "::set-env name=GOPATH::$(go env GOPATH)"
+          echo "::add-path::$(go env GOPATH)/bin"
+        shell: bash
+      - name: Dependencies
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          sudo apt-get install libgtk-3-dev libappindicator3-dev
+      - name: Build
+        if: matrix.os != 'windows-latest'
+        run: |
+          make deps
+          make release
+      - name: Build
+        if: matrix.os == 'windows-latest'
+        run: |
+          make deps
+          make release
+        # make clean
+        # make release-32
+        shell: bash
+      - name: Upload Release Binary
+        uses: svenstaro/upload-release-action@v2
+        with:
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          file: ${{ matrix.file }}
+          file_glob: true
+          tag: ${{ github.ref }}
+          overwrite: true

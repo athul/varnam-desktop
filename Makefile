@@ -1,14 +1,7 @@
 BIN := varnam
-ifeq ($(OS),Windows_NT)
-	#HASH := ${shell powershell -Command git rev-parse HEAD | % {echo $_.subString(0, 8)}}
-	HASH := ${shell git rev-parse HEAD}
-	BUILD_DATE := $(shell powershell "Get-Date")
-	ARCH := $(shell powershell "(Get-WmiObject Win32_Processor).AddressWidth")
-else
-	HASH := $(shell git rev-parse HEAD | cut -c 1-8)
-	BUILD_DATE := $(shell date '+%Y-%m-%d %H:%M:%S')
-	ARCH := $(shell uname -m)
-endif
+HASH := $(shell git rev-parse HEAD | cut -c 1-8)
+BUILD_DATE := $(shell date '+%Y-%m-%d %H:%M:%S')
+ARCH := $(shell uname -m)
 COMMIT_DATE := $(shell git show -s --format=%ci ${HASH})
 VERSION := ${HASH} (${COMMIT_DATE})
 PRETTY_VERSION := $(shell git describe --abbrev=0 --tags)
@@ -17,15 +10,19 @@ STATIC := ui:/
 LDFLAGS := -X 'main.buildVersion=${VERSION}' -X 'main.buildDate=${BUILD_DATE}' -s -w
 
 ifeq ($(OS),Windows_NT)
-	LDFLAGS := $(LDFLAGS) -H windowsgui
-	BIN := $(BIN).exe
-	RELEASE_NAME := $(RELEASE_NAME)-windows-${ARCH}
+LDFLAGS := $(LDFLAGS) -H windowsgui
+BIN := $(BIN).exe
+RELEASE_NAME_32 := $(RELEASE_NAME)-windows-32
+RELEASE_NAME := $(RELEASE_NAME)-windows-${ARCH}
 else
-	RELEASE_NAME := $(RELEASE_NAME)-linux-${ARCH}
+RELEASE_NAME := $(RELEASE_NAME)-linux-${ARCH}
 endif
 
 libvarnam-windows:
-	cd libvarnam/libvarnam & cmake -Bbuild . & cd build & cmake --build . --config Release && copy Release\varnam.dll ..\
+	cd libvarnam/libvarnam && cmake -Bbuild . && cd build && cmake --build . --config Release && cp Release/varnam.dll ../
+
+libvarnam-windows-32:
+	cd libvarnam/libvarnam && cmake -A Win32 -Bbuild . && cd build && cmake --build . --config Release && cp Release/varnam.dll ../
 
 .ONESHELL:
 libvarnam-nix:
@@ -34,7 +31,7 @@ libvarnam-nix:
 	cd build
 	cmake ..
 	cmake --build . --config Release
-	cp libvarnam.so.3* ../
+	cp -P libvarnam.so* ../
 
 ifeq ($(OS),Windows_NT)
 .PHONY: libvarnam
@@ -60,20 +57,30 @@ build: ## Build the binary (default)
 	go build -ldflags="${LDFLAGS}" -o ${BIN}
 	stuffbin -a stuff -in ${BIN} -out ${BIN} ${STATIC}
 
+# 32-bit releases are only for Windows
+build-32:
+	set GOARCH=386
+	$(MAKE) build
+
 release-linux:
-	mkdir ${RELEASE_NAME}
-	cp -a varnam.sh varnam libvarnam/libvarnam/libvarnam.so.3* config.toml ${RELEASE_NAME}
+	mkdir -p ${RELEASE_NAME}
+	cp varnam.sh varnam libvarnam/libvarnam/libvarnam.so.3 config.toml ${RELEASE_NAME}
 	tar -cvzf ${RELEASE_NAME}.tar.gz ${RELEASE_NAME}
 
 release-windows:
-	mkdir ${RELEASE_NAME}
-	copy varnam.exe ${RELEASE_NAME}
-	copy windows-setup.bat ${RELEASE_NAME}
-	copy "libvarnam\libvarnam\varnam.dll" ${RELEASE_NAME}
-	copy "config.toml" ${RELEASE_NAME}
-	copy "webview.dll" ${RELEASE_NAME}
-	copy "WebView2Loader.dll" ${RELEASE_NAME}
-	tar -acvf ${RELEASE_NAME}.zip ${RELEASE_NAME}
+	mkdir -p ${RELEASE_NAME}
+	cp -a varnam.exe windows-setup.bat libvarnam/libvarnam/varnam.dll config.toml ${RELEASE_NAME}
+	powershell "Compress-Archive -Force ${RELEASE_NAME} ${RELEASE_NAME}.zip"
+
+release-windows-32:
+	mkdir -p ${RELEASE_NAME_32}
+	cp -a varnam.exe windows-setup.bat libvarnam/libvarnam/varnam.dll config.toml ${RELEASE_NAME_32}
+	tar -acvf ${RELEASE_NAME_32}.zip ${RELEASE_NAME_32}
+
+release-32:
+	$(MAKE) libvarnam-windows-32
+	$(MAKE) build-32
+	$(MAKE) release-windows-32
 
 ifeq ($(OS),Windows_NT)
 release-os:
@@ -84,6 +91,7 @@ release-os:
 endif
 
 release:
+	$(MAKE) libvarnam
 	$(MAKE) editor
 	$(MAKE) build
 	$(MAKE) release-os
@@ -91,9 +99,12 @@ release:
 .PHONY: run
 run: build
 	./${BIN}
+
 .PHONY: clean
 clean: ## Remove temporary files and the binary
 	go clean
+	git clean -fdx
+	cd libvarnam/libvarnam && git clean -fdx
 
 # Absolutely awesome: http://marmelab.com/blog/2016/02/29/auto-documented-makefile.html
 .PHONY: help
