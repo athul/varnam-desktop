@@ -1,9 +1,9 @@
 cd varnam-editor
-yarn install
+call yarn install
 
 SET VUE_PUBLIC_PATH=/
-yarn build
+call yarn build
 
-SET workingDir=%~dp0
-rd /s /q %workingDir:~0,-1%\..\..\ui
-move dist %workingDir:~0,-1%\..\..\ui
+cd ..
+rd /s /q ui
+move varnam-editor\dist ui
