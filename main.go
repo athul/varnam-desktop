@@ -149,7 +149,6 @@ func openInBrowser(url string) {
 func onTrayReady() {
 	// systray.SetIcon(icon.Data)
 	systray.SetTitle("Varnam Desktop")
-	systray.SetTooltip("Varnam Desktop")
 	systray.SetTemplateIcon(icon.Data, icon.Data)
 
 	mOpen := systray.AddMenuItem("Open", "Open in browser")

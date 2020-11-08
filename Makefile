@@ -41,13 +41,15 @@ ifeq ($(OS),Windows_NT)
 libvarnam: libvarnam-windows
 
 .PHONY: editor
-editor: build-editor.bat
+editor:
+	build-editor.bat
 else
 .PHONY: libvarnam
 libvarnam: libvarnam-nix
 
 .PHONY: editor
-editor: build-editor.sh
+editor:
+	./build-editor.sh
 endif
 
 deps:
