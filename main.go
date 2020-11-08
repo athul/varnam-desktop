@@ -8,8 +8,9 @@ import (
 	"runtime"
 	"time"
 
+	"github.com/athul/varnam-desktop/icon"
+	"github.com/getlantern/systray"
 	flag "github.com/spf13/pflag"
-	"github.com/webview/webview"
 
 	"github.com/knadh/koanf"
 	"github.com/knadh/koanf/parsers/toml"
@@ -27,6 +28,7 @@ const (
 var (
 	kf = koanf.New(".")
 
+	appAddress            string
 	varnamdConfig         *config // config instance used across the application
 	syncDispatcherRunning bool
 	startedAt             time.Time
@@ -127,11 +129,51 @@ func startSyncDispatcher() {
 	}
 }
 
+func openInBrowser(url string) {
+	var err error
+	switch runtime.GOOS {
+	case "linux":
+		err = exec.Command("xdg-open", url).Start()
+	case "windows":
+		err = exec.Command("rundll32", "url.dll,FileProtocolHandler", url).Start()
+	case "darwin":
+		err = exec.Command("open", url).Start()
+	default:
+		err = fmt.Errorf("unsupported platform")
+	}
+	if err != nil {
+		log.Fatal(err)
+	}
+}
+
+func onTrayReady() {
+	// systray.SetIcon(icon.Data)
+	systray.SetTitle("Varnam Desktop")
+	systray.SetTooltip("Varnam Desktop")
+	systray.SetTemplateIcon(icon.Data, icon.Data)
+
+	mOpen := systray.AddMenuItem("Open", "Open in browser")
+	go func() {
+		<-mOpen.ClickedCh
+		openInBrowser(appAddress)
+	}()
+
+	mQuit := systray.AddMenuItem("Quit", "Quit the whole app")
+	go func() {
+		<-mQuit.ClickedCh
+		fmt.Println("Requesting quit")
+		systray.Quit()
+		fmt.Println("Finished quitting")
+	}()
+}
+
 func main() {
 	config, err := initAppConfig()
 	if err != nil {
 		log.Fatal(err.Error())
 	}
+
+	appAddress = "http://" + config.Address
 
 	maxHandleCount = kf.Int("app.max-handles")
 	if maxHandleCount <= 0 {
@@ -164,34 +206,9 @@ func main() {
 	startSyncDispatcher()
 	go startDaemon(app, config)
 
-	// Webview window
-	debug := true
-	w := webview.New(debug)
-	defer w.Destroy()
+	// Wait a bit for daemon to start
+	time.Sleep(2 * time.Second)
+	openInBrowser(appAddress)
 
-	// Open links in browser
-	w.Bind("$OPEN_EXTERNAL", func(url string) {
-		var err error
-
-		switch runtime.GOOS {
-		case "linux":
-			err = exec.Command("xdg-open", url).Start()
-		case "windows":
-			err = exec.Command("rundll32", "url.dll,FileProtocolHandler", url).Start()
-		case "darwin":
-			err = exec.Command("open", url).Start()
-		default:
-			err = fmt.Errorf("unsupported platform")
-		}
-
-		if err != nil {
-			log.Fatal(err)
-		}
-	})
-
-	w.SetTitle("Varnam Desktop")
-	w.SetSize(1300, 700, webview.HintNone)
-	// w.Navigate("http://localhost:8080")
-	w.Navigate("http://" + config.Address)
-	w.Run()
+	systray.Run(onTrayReady, func() {})
 }
